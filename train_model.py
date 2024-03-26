@@ -48,9 +48,11 @@ rf_classifier_balanced.fit(X_train, y_train)
 joblib.dump(rf_classifier_balanced, 'rf_classifier_balanced.pkl')
 joblib.dump(label_encoders, 'label_encoders.pkl')
 
-# Predictions (for testing purposes)
 y_pred_balanced = rf_classifier_balanced.predict(X_test)
+
+
 accuracy_balanced = accuracy_score(y_test, y_pred_balanced)
+
 
 # Print results
 final_class_report = classification_report(y_test, y_pred_balanced)
