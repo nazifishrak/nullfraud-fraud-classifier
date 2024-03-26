@@ -9,25 +9,29 @@ rf_classifier_balanced = joblib.load('rf_classifier_balanced.pkl')
 def encode_inputs(user_inputs, label_encoders):
     encoded_inputs = user_inputs.copy()
     for col, le in label_encoders.items():
-        # Convert date and time objects to strings
-        if isinstance(user_inputs[col], (pd.Timestamp, pd.DatetimeIndex, pd.Period)):
-            user_input = str(user_inputs[col].date())
-        elif isinstance(user_inputs[col], (pd.Timedelta, pd.TimedeltaIndex)):
-            user_input = str(user_inputs[col].time())
-        else:
-            user_input = user_inputs[col]
-        
+        user_input = user_inputs[col]
+        if isinstance(user_input, (pd.Timestamp, pd.DatetimeIndex, pd.Period)):
+            user_input = user_input.strftime('%Y-%m-%d')  # Format for dates
+        elif isinstance(user_input, (pd.Timedelta, pd.TimedeltaIndex)):
+            user_input = str(user_input).split('.')[0]  # Format for times, removing fractional part
 
         if user_input not in le.classes_:
-            user_input = le.classes_[0]  # or some other default value
+            # Handle unseen categories or set a default value
+            user_input = 'Other' if 'Other' in le.classes_ else le.classes_[0]
         
         encoded_inputs[col] = le.transform([user_input])[0]
     return encoded_inputs
 
+# Load the feature order
+feature_order = joblib.load('feature_order.pkl')
 
 
-def predict_fraud(user_inputs_encoded):
-    input_df = pd.DataFrame([user_inputs_encoded])
+def predict_fraud(user_inputs_encoded, feature_order):
+    # Create a DataFrame with the correct column order
+    input_df = pd.DataFrame([user_inputs_encoded], columns=feature_order)
+    # Fill missing columns with 0 (if any)
+    input_df = input_df.reindex(columns=feature_order, fill_value=0)
+    # Make the prediction
     prediction = rf_classifier_balanced.predict(input_df)
     probability = rf_classifier_balanced.predict_proba(input_df)[:, 1]
     print(prediction)
@@ -39,10 +43,10 @@ st.title('Fraud Detection System')
 
 # Collect user inputs
 user_inputs = {}
-user_inputs['Card Identifier'] = st.text_input('Card Identifier')
+user_inputs['Card Identifier'] = st.text_input('Card Identifier',placeholder="card 1239")
 user_inputs['Transaction Date'] = st.date_input('Transaction Date')
 user_inputs['Transaction Time'] = st.time_input('Transaction Time')
-user_inputs['Risk Assessment'] = st.number_input('Risk Assessment', min_value=0)
+user_inputs['Risk Assessment'] = st.number_input('Risk Assessment', min_value=0, placeholder="3267")
 user_inputs['Payment Method'] = st.selectbox('Payment Method',[
     'Chip',
     'eCommerce',
@@ -57,7 +61,7 @@ user_inputs['Payment Method'] = st.selectbox('Payment Method',[
     'Tap-to-Pay',
     'Unknown'
 ])
-user_inputs['Transaction Value'] = st.number_input('Transaction Value', min_value=0.0)
+user_inputs['Transaction Value'] = st.number_input('Transaction Value', min_value=0.0, placeholder=2.65)
 user_inputs['Merchant Location'] = st.selectbox('Merchant Location',
 [
     'ABW', 'AGO', 'ALB', 'AND', 'ARE', 'ARG', 'ARM', 'ATG', 'AUS', 'AUT', 'AZE',
@@ -77,9 +81,20 @@ user_inputs['Merchant Location'] = st.selectbox('Merchant Location',
 user_inputs['Card Present Status'] = st.selectbox('Card Present Status', ['CNP', 'CP'])
 user_inputs['Chip Usage'] = st.selectbox('Chip Usage', ['Yes', 'No'])
 user_inputs['Cross-border Transaction (Yes/No)'] = st.selectbox('Cross-border Transaction (Yes/No)', ['Yes', 'No'])
-user_inputs['Acquiring Institution ID'] = st.text_input('Acquiring Institution ID')
-user_inputs['Merchant Identifier'] = st.text_input('Merchant Identifier')
-user_inputs['Merchant Category Code (MCC)'] = st.text_input('Merchant Category Code (MCC)')
+user_inputs['Acquiring Institution ID'] = st.text_input('Acquiring Institution ID', placeholder="acquirer 1")
+user_inputs['Merchant Identifier'] = st.text_input('Merchant Identifier', placeholder="merchant 377")
+user_inputs['Merchant Category Code (MCC)'] = st.number_input('Merchant Category Code (MCC)', placeholder=7311)
+
+
+
+
+
+
+
+
+
+
+
 
 
 label_encoders = joblib.load('label_encoders.pkl')
@@ -89,7 +104,7 @@ encoded_inputs = encode_inputs(user_inputs, label_encoders)
 
 
 if st.button('Predict Fraud'):
-    prediction, probability = predict_fraud(encoded_inputs)
+    prediction, probability = predict_fraud(encoded_inputs, feature_order)
     if prediction == 1:
         st.error(f'Likely Fraud Detected with {probability*100:.2f}% chance of it being a fraud')
     else:
