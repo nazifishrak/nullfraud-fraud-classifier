@@ -2,12 +2,10 @@ import streamlit as st
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 from sklearn.ensemble import RandomForestClassifier
-# Load your trained model
-# (Assuming your model is trained and saved as 'rf_classifier_balanced.pkl')
 import joblib
 rf_classifier_balanced = joblib.load('rf_classifier_balanced.pkl')
 
-# Function to encode user inputs
+
 def encode_inputs(user_inputs, label_encoders):
     encoded_inputs = user_inputs.copy()
     for col, le in label_encoders.items():
@@ -19,7 +17,7 @@ def encode_inputs(user_inputs, label_encoders):
         else:
             user_input = user_inputs[col]
         
-        # Handle unseen labels by assigning a default value (e.g., the mode of the training data)
+
         if user_input not in le.classes_:
             user_input = le.classes_[0]  # or some other default value
         
@@ -28,7 +26,6 @@ def encode_inputs(user_inputs, label_encoders):
 
 
 
-# Function to make predictions
 def predict_fraud(user_inputs_encoded):
     input_df = pd.DataFrame([user_inputs_encoded])
     prediction = rf_classifier_balanced.predict(input_df)
@@ -37,7 +34,7 @@ def predict_fraud(user_inputs_encoded):
     print(probability)
     return prediction[0], probability[0]
 
-# Streamlit interface
+
 st.title('Fraud Detection System')
 
 # Collect user inputs
@@ -56,13 +53,13 @@ user_inputs['Acquiring Institution ID'] = st.text_input('Acquiring Institution I
 user_inputs['Merchant Identifier'] = st.text_input('Merchant Identifier')
 user_inputs['Merchant Category Code (MCC)'] = st.text_input('Merchant Category Code (MCC)')
 
-# Load label encoders (Assuming they are saved as 'label_encoders.pkl')
+
 label_encoders = joblib.load('label_encoders.pkl')
 
-# Encode user inputs
+
 encoded_inputs = encode_inputs(user_inputs, label_encoders)
 
-# Make prediction
+
 if st.button('Predict Fraud'):
     prediction, probability = predict_fraud(encoded_inputs)
     if prediction == 1:
