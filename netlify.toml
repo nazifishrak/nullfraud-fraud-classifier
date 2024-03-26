@@ -1,0 +1,8 @@
+[build]
+  publish = "/"
+  command = "sh deploy.sh"
+
+[[redirects]]
+  from = "/*"
+  to = "/"
+  status = 200
